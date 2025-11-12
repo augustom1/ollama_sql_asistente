@@ -1,0 +1,4 @@
+ollama
+python-dotenv
+sqlglot>=25.0.0
+sqlparse>=0.5.1

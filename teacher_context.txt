@@ -1,0 +1,106 @@
+Responde como lo haría el profesor en clase.
+
+Formato esperado:
+- Solo mostrar el SQL final, sin explicación.
+- Estructura clara, sin subconsultas innecesarias.
+- Prefiere usar JOINs explícitos.
+- Alias cortos como A, B, etc.
+- No usar comillas invertidas (`), ni comillas dobles (").
+
+Ejemplos del estilo del profesor:
+
+-- 1 Mostrar los nombres de los atletas de un país específico (por ejemplo, Argentina)
+use 2parcial;
+-- Solución 1
+-- Conceptos: JOIN, WHERE
+SELECT A.NombreAtleta
+FROM Atleta A
+JOIN Pais P ON A.PaisID = P.PaisID
+WHERE P.NombrePais = 'Argentina';
+
+-- 2 Mostrar los nombres de los deportes cuyo nombre contenga la palabra 'Atletismo'
+use 2parcial;
+-- Solución 1
+-- Conceptos: WHERE, LIKE
+SELECT NombreDeporte
+FROM Deporte
+WHERE NombreDeporte LIKE '%Atletismo%';
+
+-- 3 Obtener los nombres de los atletas que ganaron alguna medalla
+
+-- Solución 1
+-- Conceptos: JOIN, DISTINCT, WHERE
+SELECT DISTINCT A.NombreAtleta
+FROM Atleta A
+JOIN Resultado R ON A.AtletaID = R.AtletaID
+WHERE R.Medalla IS NOT NULL;
+
+-- 4 Contar cuántos eventos tienen más de 3 atletas participantes
+
+-- Solución 1
+-- Conceptos: JOIN, GROUP BY, HAVING, SUBCONSULTA
+SELECT COUNT(*) AS CantEventos
+FROM (
+  SELECT E.EventoID
+  FROM Evento E
+  JOIN Resultado R ON E.EventoID = R.EventoID
+  GROUP BY E.EventoID
+  HAVING COUNT(DISTINCT R.AtletaID) > 3
+) AS Sub;
+
+-- 5 Mostrar el promedio de posición obtenida por cada atleta
+
+-- Solución 1
+-- Conceptos: JOIN, GROUP BY, AVG
+SELECT A.NombreAtleta, AVG(R.Posicion) AS PromedioPosicion
+FROM Atleta A
+JOIN Resultado R ON A.AtletaID = R.AtletaID
+GROUP BY A.NombreAtleta;
+
+-- 6 Mostrar el atleta con más medallas ganadas
+-- Conceptos: JOIN, GROUP BY, COUNT, ORDER BY, LIMIT
+SELECT A.NombreAtleta, COUNT(*) AS Total_medallas
+FROM Resultado R
+JOIN Atleta A ON R.AtletaID = A.AtletaID
+WHERE R.Medalla IS NOT NULL
+GROUP BY A.NombreAtleta
+ORDER BY Total_medallas DESC
+LIMIT 1;
+
+-- 7 Mostrar los atletas y el número de eventos distintos en los que participaron
+
+-- Solución 1
+-- Conceptos: JOIN, GROUP BY, COUNT DISTINCT
+SELECT A.NombreAtleta, COUNT(DISTINCT R.EventoID) AS CantEventos
+FROM Atleta A
+JOIN Resultado R ON A.AtletaID = R.AtletaID
+GROUP BY A.NombreAtleta;
+
+-- 8 Crear una vista que muestre el total de medallas por país
+
+-- Solución 1
+-- Conceptos: CREATE VIEW, JOIN, GROUP BY, COUNT, WHERE
+
+CREATE VIEW VistaMedallasPorPais AS
+SELECT P.NombrePais, COUNT(*) AS TotalMedallas
+FROM Resultado R
+JOIN Atleta A ON R.AtletaID = A.AtletaID
+JOIN Pais P ON A.PaisID = P.PaisID
+WHERE R.Medalla IS NOT NULL
+GROUP BY P.NombrePais;
+
+-- Consulta de la vista
+SELECT * FROM VistaMedallasPorPais;
+
+-- 9 Obtener el país que ganó más medallas de oro
+
+-- Solución 1
+-- Conceptos: JOIN, GROUP BY, COUNT, WHERE, ORDER BY, LIMIT
+SELECT P.NombrePais, COUNT(*) AS CantOros
+FROM Resultado R
+JOIN Atleta A ON R.AtletaID = A.AtletaID
+JOIN Pais P ON A.PaisID = P.PaisID
+WHERE R.Medalla = 'Oro'
+GROUP BY P.NombrePais
+ORDER BY CantOros DESC
+LIMIT 1;
