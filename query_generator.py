@@ -56,9 +56,7 @@ def _extract_content_from_ollama(result: Any) -> str:
     text = str(result)
     m = re.search(r'content="(.*)"', text, flags=re.DOTALL)
     if m:
-        # Desescapar comillas si fuese necesario
         captured = m.group(1)
-        # A veces el repr corta con '";, tool_calls=...' — limpiamos justo antes del cierre
         captured = re.split(r'";\s*\w+=', captured)[0]
         return captured
 
@@ -90,16 +88,31 @@ class QueryGenerator:
     # PROMPTS
     # --------------------------
     def _system_prompt(self) -> str:
-        base = [
-            "Eres un generador de SQL.",
-            f"Dialecto objetivo: {self.dialect}.",
-            "Responde SOLAMENTE con sentencias SQL válidas (terminadas en ';').",
-            "No incluyas explicaciones, razones, ni texto fuera de SQL.",
-            "Usa sintaxis clara, JOINs explícitos y alias cortos si hacen falta.",
-            "Evita funciones no vistas en clase si la consulta puede resolverse con SQL básico.",
-        ]
+        """
+        Cambia el comportamiento según el modo:
+        - sql_only=True  -> Generador estricto de SQL
+        - sql_only=False -> Profesor de BD (teoría concisa, ejemplos simples)
+        """
         if self.sql_only:
-            base.append("ESTRICTO: Solo SQL, sin comentarios ni bloques de markdown.")
+            base = [
+                "Eres un generador de SQL.",
+                f"Dialecto objetivo: {self.dialect}.",
+                "Responde SOLAMENTE con sentencias SQL válidas (terminadas en ';').",
+                "No incluyas explicaciones, razones, ni texto fuera de SQL.",
+                "Usa sintaxis clara, JOINs explícitos y alias cortos si hacen falta.",
+                "Evita funciones no vistas en clase si la consulta puede resolverse con SQL básico.",
+                "ESTRICTO: Solo SQL, sin comentarios ni bloques de markdown."
+            ]
+            return " ".join(base)
+
+        # Modo teoría
+        base = [
+            "Eres profesor de Bases de Datos.",
+            "Responde de forma breve, clara y orientada a examen.",
+            "Usa viñetas cuando ayude, ejemplos simples y definiciones precisas.",
+            "No generes SQL a menos que el usuario lo pida explícitamente.",
+            f"Si el usuario pide SQL, usa el dialecto {self.dialect}."
+        ]
         return " ".join(base)
 
     # --------------------------
@@ -120,16 +133,19 @@ class QueryGenerator:
         text = self._strip_markdown_fences(text)
         text = self._cut_explanations(text).strip()
 
-        # Divide por sentencias y formatea cada una
         statements = split_sql_statements(text)
         if not statements:
-            # Fallback: formateo general si no detecta splits
             if not text.endswith(";"):
                 text += ";"
             return format_sql(text)
 
         formatted = [format_sql(s if s.endswith(";") else s + ";") for s in statements]
         return "\n\n".join(formatted).strip()
+
+    def _postprocess_theory(self, text: str) -> str:
+        """Limpieza suave para respuestas teóricas (sin forzar SQL)."""
+        text = self._strip_markdown_fences(text)
+        return text.strip()
 
     # --------------------------
     # VALIDACIÓN (opcional)
@@ -194,11 +210,8 @@ class QueryGenerator:
         )
 
         raw_text = _extract_content_from_ollama(result)
-        sql = self._postprocess_sql(raw_text)
 
-        # Si querés, podés activar validación (solo warnings, no corta la salida):
-        # errors = self._validate_with_catalog(sql)
-        # if errors:
-        #     print("\n[AVISO VALIDACIÓN]\n - " + "\n - ".join(errors) + "\n")
+        if self.sql_only:
+            return self._postprocess_sql(raw_text)
 
-        return sql
+        return self._postprocess_theory(raw_text)
