@@ -22,7 +22,7 @@ ollama pull qwen2.5-coder:1.5b
 ### Opción A: Clonar con Git
 
 ```
-git clone <URL_DE_TU_REPO>
+git clone <https://github.com/augustom1/ollama_sql_asistente/>
 cd <carpeta>
 pip install -r requirements.txt
 ```
@@ -109,6 +109,4 @@ git pull
 └── schemas/
 ```
 
-## Nota para el examen
-
-Probá todas las consultas en MySQL Workbench antes de entregar tu archivo `.sql`.
+## No es una herramienta toda poderosa pero ayuda bastante
